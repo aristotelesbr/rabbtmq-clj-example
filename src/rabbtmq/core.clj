@@ -3,19 +3,30 @@
             [langohr.channel   :as lch]
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
-            [langohr.basic     :as lb]))
+            [langohr.basic     :as lb]
+            [langohr.exchange  :as le]))
 
 (def qname
   "test-queeue")
 
 (def ^{:const true} default-exchange
   "")
+(def direct-exchange
+  "my-direct-exchange")
 
 ;; Create a queue
 (let [conn (rmq/connect)
       ch   (lch/open conn)]
   (lq/declare ch qname {:exclusive   false
                         :auto-delete false})
+  (lch/close ch)
+  (rmq/close conn))
+
+;; Create direct exchange
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (le/declare ch direct-exchange "direct")
+  (lq/bind ch qname direct-exchange {:routing-key "direct-route"})
   (lch/close ch)
   (rmq/close conn))
 
@@ -26,8 +37,14 @@
   (lch/close ch)
   (rmq/close conn))
 
-;; Consume message from queue
+;; Publish menssage to direct exchange
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lb/publish ch direct-exchange "direct-route" "hello from direct")
+  (lch/close ch)
+  (rmq/close conn))
 
+;; Consume message from queue
 (defn message-handle
   [_chanel _meta payload]
   (let [parsed-payload (String. payload "UTF-8")]
