@@ -8,11 +8,12 @@
 
 (def qname
   "test-queeue")
-
 (def ^{:const true} default-exchange
   "")
 (def direct-exchange
   "my-direct-exchange")
+(def topic-exchange
+  "my-topic-exchange")
 
 ;; Create a queue
 (let [conn (rmq/connect)
@@ -30,6 +31,14 @@
   (lch/close ch)
   (rmq/close conn))
 
+;; Create a topic exchange
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (le/declare ch topic-exchange "topic")
+  (lq/bind ch qname topic-exchange {:routing-key "topic.*"})
+  (lch/close ch)
+  (rmq/close conn))
+
 ;; Publish menssage to exchange
 (let [conn (rmq/connect)
       ch   (lch/open conn)]
@@ -41,6 +50,13 @@
 (let [conn (rmq/connect)
       ch   (lch/open conn)]
   (lb/publish ch direct-exchange "direct-route" "hello from direct")
+  (lch/close ch)
+  (rmq/close conn))
+
+;; Publish menssage to topic exchange
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lb/publish ch topic-exchange "topic.anything" "hello from topic")
   (lch/close ch)
   (rmq/close conn))
 
